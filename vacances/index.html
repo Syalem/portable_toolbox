@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendrier des Vacances</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .controls div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        select, input, button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button#reset {
+            background-color: #f44336;
+        }
+        button#reset:hover {
+            background-color: #d32f2f;
+        }
+        .calendrier {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .ligne-mois {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .mois-container {
+            flex: 1;
+            min-width: 200px;
+        }
+        .mois {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        .jour {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .jour.grise {
+            background-color: #e0e0e0;
+            color: #888;
+            cursor: not-allowed;
+        }
+        .jour.selectionne {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .jour.vide {
+            background-color: transparent;
+            border: none;
+        }
+        h3 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .back-link {
+            display: inline-block;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 8px 12px;
+            color: #333;
+            text-decoration: none;
+            font-size: 1rem;
+        }
+        .back-link:hover {
+            background-color: #f0f0f0;
+            border-color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Toolbox</a>
+        <h1 id="titre">Calendrier des Vacances</h1>
+        <div class="controls">
+            <div>
+                <label for="annee">Année:</label>
+                <select id="annee" onchange="changerAnnee()"></select>
+            </div>
+            <div>
+                <label for="jours_restants_annee_precedente">Jours restants année dernière:</label>
+                <input type="number" id="jours_restants_annee_precedente" value="0" min="0">
+            </div>
+            <div>
+                <label for="jours_total_annee">Jours total pour l'année:</label>
+                <input type="number" id="jours_total_annee" value="30" min="0">
+            </div>
+            <div>
+                <button id="reset" onclick="resetCalendrier()">Réinitialiser</button>
+                <button onclick="sauvegarder()">💾 Sauvegarder</button>
+            </div>
+        </div>
+        <div id="calendrier" class="calendrier"></div>
+        <div class="summary">
+            <p>Jours restants à planifier: <span id="jours_restants_a_planifier">30</span></p>
+        </div>
+    </div>
+
+    <script>
+        // État global
+        let toutesVacances = {};
+        let joursFeries = {};
+        let joursSelectionnes = [];
+        const MOIS_NOMS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+                           "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+        function chargerDonneesAnnee(annee) {
+            const donnees = toutesVacances[String(annee)];
+            if (donnees) return donnees;
+            return {
+                jours_restants_annee_precedente: 0,
+                jours_total_annee: 30,
+                jours_restants_a_planifier: 30,
+                jours_selectionnes: []
+            };
+        }
+
+        // Générer le HTML d'un mois (port de generer_mois en Python)
+        function genererMois(annee, moisIdx, feriesAnnee) {
+            const nombreJours = new Date(annee, moisIdx + 1, 0).getDate();
+            const decalage = (new Date(annee, moisIdx, 1).getDay() + 6) % 7; // 0 = lundi
+
+            let html = "<div class='mois-container'><h3>" + MOIS_NOMS[moisIdx] + "</h3><div class='mois'>";
+
+            for (let i = 0; i < decalage; i++) {
+                html += "<div class='jour vide'></div>";
+            }
+
+            for (let jour = 1; jour <= nombreJours; jour++) {
+                const date = new Date(annee, moisIdx, jour);
+                const dateStr = annee + "-" + String(moisIdx + 1).padStart(2, "0") + "-" + String(jour).padStart(2, "0");
+                const estWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const estFerie = feriesAnnee.includes(dateStr);
+                const estSelectionne = joursSelectionnes.includes(dateStr);
+
+                let classes = "jour";
+                if (estWeekend || estFerie) classes += " grise";
+                if (estSelectionne) classes += " selectionne";
+
+                html += "<div class='" + classes + "' data-date='" + dateStr + "'>" + jour + "</div>";
+            }
+
+            html += "</div></div>";
+            return html;
+        }
+
+        // Générer le calendrier complet : 12 mois, 4 par ligne
+        function genererCalendrier(annee) {
+            const feriesAnnee = joursFeries[String(annee)] || [];
+            let html = "";
+            for (let moisIdx = 0; moisIdx < 12; moisIdx++) {
+                if (moisIdx % 4 === 0) html += "<div class='ligne-mois'>";
+                html += genererMois(annee, moisIdx, feriesAnnee);
+                if ((moisIdx + 1) % 4 === 0 || moisIdx === 11) html += "</div>";
+            }
+            document.getElementById('calendrier').innerHTML = html;
+        }
+
+        function majSelectAnnee(annee) {
+            document.getElementById('annee').innerHTML =
+                "<option value='" + (annee - 1) + "'>" + (annee - 1) + "</option>" +
+                "<option value='" + annee + "' selected>" + annee + "</option>" +
+                "<option value='" + (annee + 1) + "'>" + (annee + 1) + "</option>";
+        }
+
+        // Afficher une année : données, champs, titre et calendrier (remplace le rechargement ?annee=)
+        function afficherAnnee(annee) {
+            const donnees = chargerDonneesAnnee(annee);
+            joursSelectionnes = donnees.jours_selectionnes.slice();
+            document.getElementById('titre').textContent = 'Calendrier des Vacances - ' + annee;
+            document.getElementById('jours_restants_annee_precedente').value = donnees.jours_restants_annee_precedente;
+            document.getElementById('jours_total_annee').value = donnees.jours_total_annee;
+            document.getElementById('jours_restants_a_planifier').textContent = donnees.jours_restants_a_planifier;
+            majSelectAnnee(annee);
+            genererCalendrier(annee);
+        }
+
+        function changerAnnee() {
+            afficherAnnee(parseInt(document.getElementById('annee').value));
+        }
+    </script>
+    <script>
+        // Sélectionner/désélectionner un jour (délégation, survit aux re-rendus)
+        document.getElementById('calendrier').addEventListener('click', function(event) {
+            const jour = event.target.closest('.jour');
+            if (!jour || jour.classList.contains('grise') || jour.classList.contains('vide')) return;
+            const date = jour.getAttribute('data-date');
+            if (jour.classList.contains('selectionne')) {
+                jour.classList.remove('selectionne');
+                joursSelectionnes = joursSelectionnes.filter(function(d) { return d !== date; });
+            } else {
+                jour.classList.add('selectionne');
+                joursSelectionnes.push(date);
+            }
+            majJoursRestants();
+        });
+
+        // Mettre à jour les jours restants à planifier
+        function majJoursRestants() {
+            const joursTotal = parseInt(document.getElementById('jours_total_annee').value) || 0;
+            const joursRestants = joursTotal - joursSelectionnes.length;
+            document.getElementById('jours_restants_a_planifier').textContent = joursRestants;
+        }
+
+        // Réinitialiser le calendrier
+        function resetCalendrier() {
+            if (confirm("Êtes-vous sûr de vouloir réinitialiser le calendrier ?")) {
+                document.querySelectorAll('.jour.selectionne').forEach(function(jour) {
+                    jour.classList.remove('selectionne');
+                });
+                joursSelectionnes = [];
+                majJoursRestants();
+            }
+        }
+
+        // Sauvegarder les données (POST /sauvegarder géré par toolbox.py)
+        function sauvegarder() {
+            const annee = parseInt(document.getElementById('annee').value);
+            const joursRestantsAnneePrecedente = parseInt(document.getElementById('jours_restants_annee_precedente').value) || 0;
+            const joursTotalAnnee = parseInt(document.getElementById('jours_total_annee').value) || 0;
+            const joursRestantsAPlanifier = parseInt(document.getElementById('jours_restants_a_planifier').textContent) || 0;
+
+            const data = {
+                annee: annee,
+                jours_restants_annee_precedente: joursRestantsAnneePrecedente,
+                jours_total_annee: joursTotalAnnee,
+                jours_restants_a_planifier: joursRestantsAPlanifier,
+                jours_selectionnes: joursSelectionnes
+            };
+
+            fetch('/sauvegarder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                alert('Sauvegarde réussie !');
+            })
+            .catch(function(error) {
+                alert('Erreur lors de la sauvegarde.');
+            });
+        }
+
+        // Chargement initial : jours fériés + données sauvegardées, puis affichage
+        (async function initialiser() {
+            try {
+                const feriesResp = await fetch('jours_feries.json');
+                if (feriesResp.ok) joursFeries = await feriesResp.json();
+
+                const vacancesResp = await fetch('vacances.json');
+                if (vacancesResp.ok) {
+                    toutesVacances = await vacancesResp.json();
+                    // Migration : ancien format (une seule année) -> format par année
+                    if (toutesVacances && typeof toutesVacances === 'object' && !Array.isArray(toutesVacances) && 'annee' in toutesVacances) {
+                        const ancienneAnnee = String(toutesVacances.annee);
+                        const reste = Object.assign({}, toutesVacances);
+                        delete reste.annee;
+                        toutesVacances = {};
+                        toutesVacances[ancienneAnnee] = reste;
+                    }
+                }
+            } catch (error) {
+                // Fichiers indisponibles : démarrage avec les valeurs par défaut
+            }
+            afficherAnnee(new Date().getFullYear());
+        })();
+    </script>
+</body>
+</html>
