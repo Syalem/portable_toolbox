@@ -87,6 +87,15 @@
         .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .status { margin-top: 25px; font-size: 1.2rem; color: #00d4ff; min-height: 24px; }
+        .sound-option {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            margin-top: 15px; font-size: 1rem; color: #aaa; cursor: pointer;
+            user-select: none;
+        }
+        .sound-option:hover { color: #fff; }
+        .sound-option input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: #00d4ff; cursor: pointer;
+        }
         .fullscreen-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -196,6 +205,11 @@
         <button class="btn btn-fullscreen" id="fullscreenBtn">Fullscreen</button>
     </div>
 
+    <label class="sound-option">
+        <input type="checkbox" id="soundOption" checked>
+        🔔 Play notification sound when time's up
+    </label>
+
     <div class="status" id="status"></div>
 
     <div class="keyboard-hint">
@@ -228,12 +242,58 @@
         const fullscreenOverlay = document.getElementById('fullscreenOverlay');
         const fullscreenExit = document.getElementById('fullscreenExit');
         const status = document.getElementById('status');
+        const soundOption = document.getElementById('soundOption');
+
+        let audioCtx = null;
 
         function setTimesUp(active) {
             timerDisplay.classList.toggle('times-up', active);
             fullscreenDisplay.classList.toggle('times-up', active);
             document.body.classList.toggle('times-up-bg', active);
             fullscreenOverlay.classList.toggle('times-up-bg', active);
+        }
+
+        /* Unlock the AudioContext on a user gesture (Start button / Space),
+           so the completion sound can play later when the countdown ends. */
+        function ensureAudioUnlocked() {
+            try {
+                if (!audioCtx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) audioCtx = new AudioCtx();
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (err) {
+                console.log('Audio init error:', err);
+            }
+        }
+
+        /* Three short beeps synthesized with the Web Audio API,
+           so the tool stays self-contained (no audio files). */
+        function playNotificationSound() {
+            if (!soundOption.checked) return;
+            try {
+                ensureAudioUnlocked();
+                if (!audioCtx) return;
+                const t0 = audioCtx.currentTime + 0.05;
+                for (let i = 0; i < 3; i++) {
+                    const t = t0 + i * 0.35;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.0001, t);
+                    gain.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.32);
+                }
+            } catch (err) {
+                console.log('Audio error:', err);
+            }
         }
 
         function formatTime(seconds) {
@@ -268,6 +328,7 @@
             if (isRunning || totalSeconds === 0) return;
             isRunning = true;
             setTimesUp(false);
+            ensureAudioUnlocked();
             startBtn.disabled = true;
             pauseBtn.disabled = false;
             setBtn.disabled = true;
@@ -285,6 +346,7 @@
                     setBtn.disabled = false;
                     status.textContent = "Time's up!";
                     setTimesUp(true);
+                    playNotificationSound();
                 }
             }, 50);
             status.textContent = "Running...";
