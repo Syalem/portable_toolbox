@@ -45,8 +45,8 @@
     },
     "2026": {
         "jours_restants_annee_precedente": 0,
-        "jours_total_annee": 30,
-        "jours_restants_a_planifier": 22,
+        "jours_total_annee": 15,
+        "jours_restants_a_planifier": 21,
         "jours_selectionnes": [
             "2026-08-21",
             "2026-08-24",
@@ -55,7 +55,8 @@
             "2026-12-30",
             "2026-12-23",
             "2026-12-24",
-            "2026-12-31"
+            "2026-12-31",
+            "2026-11-13"
         ]
     }
 }

@@ -55,6 +55,13 @@
         button#reset:hover {
             background-color: #d32f2f;
         }
+        #save_status {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        #save_status.error {
+            color: #d32f2f;
+        }
         .calendrier {
             display: flex;
             flex-direction: column;
@@ -134,15 +141,16 @@
             </div>
             <div>
                 <label for="jours_restants_annee_precedente">Jours restants année dernière:</label>
-                <input type="number" id="jours_restants_annee_precedente" value="0" min="0">
+                <input type="number" id="jours_restants_annee_precedente" value="0" min="0" oninput="sauvegarderAuto()">
             </div>
             <div>
                 <label for="jours_total_annee">Jours total pour l'année:</label>
-                <input type="number" id="jours_total_annee" value="30" min="0">
+                <input type="number" id="jours_total_annee" value="30" min="0" oninput="majJoursRestants(); sauvegarderAuto()">
             </div>
             <div>
                 <button id="reset" onclick="resetCalendrier()">Réinitialiser</button>
                 <button onclick="sauvegarder()">💾 Sauvegarder</button>
+                <span id="save_status" aria-live="polite"></span>
             </div>
         </div>
         <div id="calendrier" class="calendrier"></div>
@@ -156,6 +164,8 @@
         let toutesVacances = {};
         let joursFeries = {};
         let joursSelectionnes = [];
+        let anneeAffichee = null;
+        let saveTimer = null;
         const MOIS_NOMS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
                            "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
@@ -221,16 +231,24 @@
         // Afficher une année : données, champs, titre et calendrier (remplace le rechargement ?annee=)
         function afficherAnnee(annee) {
             const donnees = chargerDonneesAnnee(annee);
+            anneeAffichee = annee;
             joursSelectionnes = donnees.jours_selectionnes.slice();
             document.getElementById('titre').textContent = 'Calendrier des Vacances - ' + annee;
             document.getElementById('jours_restants_annee_precedente').value = donnees.jours_restants_annee_precedente;
             document.getElementById('jours_total_annee').value = donnees.jours_total_annee;
-            document.getElementById('jours_restants_a_planifier').textContent = donnees.jours_restants_a_planifier;
+            // Toujours recalculé : total - jours sélectionnés (ignore une valeur obsolète du fichier)
+            majJoursRestants();
             majSelectAnnee(annee);
             genererCalendrier(annee);
         }
 
         function changerAnnee() {
+            // Enregistrer l'année affichée avant de basculer vers la nouvelle
+            if (saveTimer) {
+                clearTimeout(saveTimer);
+                saveTimer = null;
+                sauvegarder();
+            }
             afficherAnnee(parseInt(document.getElementById('annee').value));
         }
     </script>
@@ -248,6 +266,7 @@
                 joursSelectionnes.push(date);
             }
             majJoursRestants();
+            sauvegarderAuto();
         });
 
         // Mettre à jour les jours restants à planifier
@@ -265,15 +284,30 @@
                 });
                 joursSelectionnes = [];
                 majJoursRestants();
+                sauvegarderAuto();
+            }
+        }
+
+        // Message d'état de la sauvegarde (à côté du bouton 💾)
+        function setStatus(message, isError) {
+            const statusEl = document.getElementById('save_status');
+            statusEl.textContent = message;
+            statusEl.classList.toggle('error', Boolean(isError));
+            clearTimeout(setStatus._timer);
+            if (!isError && message) {
+                setStatus._timer = setTimeout(function() { statusEl.textContent = ''; }, 2500);
             }
         }
 
         // Sauvegarder les données (POST /sauvegarder géré par toolbox.py)
         function sauvegarder() {
-            const annee = parseInt(document.getElementById('annee').value);
+            clearTimeout(saveTimer);
+            saveTimer = null;
+            const annee = anneeAffichee;
             const joursRestantsAnneePrecedente = parseInt(document.getElementById('jours_restants_annee_precedente').value) || 0;
             const joursTotalAnnee = parseInt(document.getElementById('jours_total_annee').value) || 0;
-            const joursRestantsAPlanifier = parseInt(document.getElementById('jours_restants_a_planifier').textContent) || 0;
+            // Toujours recalculé ici : le texte affiché peut être obsolète
+            const joursRestantsAPlanifier = joursTotalAnnee - joursSelectionnes.length;
 
             const data = {
                 annee: annee,
@@ -283,18 +317,29 @@
                 jours_selectionnes: joursSelectionnes
             };
 
-            fetch('/sauvegarder', {
+            setStatus('Sauvegarde…');
+            return fetch('/sauvegarder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
             .then(function(response) { return response.json(); })
-            .then(function(data) {
-                alert('Sauvegarde réussie !');
+            .then(function(result) {
+                if (result && result.status === 'success') {
+                    setStatus('Sauvegardé ✓');
+                } else {
+                    setStatus('Erreur : ' + (result && result.detail ? result.detail : 'échec de la sauvegarde'), true);
+                }
             })
             .catch(function(error) {
-                alert('Erreur lors de la sauvegarde.');
+                setStatus('Erreur lors de la sauvegarde (serveur injoignable ?)', true);
             });
+        }
+
+        // Sauvegarde automatique : enregistre les modifications après chaque changement (avec un court délai)
+        function sauvegarderAuto() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(function() { saveTimer = null; sauvegarder(); }, 500);
         }
 
         // Chargement initial : jours fériés + données sauvegardées, puis affichage

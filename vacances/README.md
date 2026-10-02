@@ -60,7 +60,7 @@ vacances/
     
     
       Sauvegarde
-      Bouton 💾 pour enregistrer les modifications dans vacances.json.
+      Automatique après chaque modification, ou bouton 💾 pour enregistrer immédiatement dans vacances.json.
     
     
       Réinitialisation
@@ -120,7 +120,7 @@ Ajouter des années : Ajoute les dates dans jours_feries.json ; le menu déroula
 ## ⚠️ Notes
 
 Navigateurs supportés : Opera, Chrome, Firefox, Edge.
-Données persistantes : Les sélections sont sauvegardées dans vacances.json uniquement après avoir cliqué sur 💾.
+Données persistantes : Les modifications sont enregistrées automatiquement dans vacances.json (après un court délai) ou immédiatement via le bouton 💾. Le nombre de jours restants à planifier est toujours recalculé (total − jours sélectionnés).
 Pas de base de données : Ce projet utilise uniquement des fichiers JSON locaux.
 
 ## 🤝 Contribuer
