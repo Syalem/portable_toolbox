@@ -66,7 +66,8 @@
   .example { padding-right: 16px; border-right: 1px solid var(--border); line-height: 1.8; }
   .example:last-child { border-right: 0; }
   .example strong { color: #d9e6f7; display: block; margin-bottom: 4px; }
-  .actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+  .actions { display: flex; justify-content: flex-start; }
+  .how a { color: var(--blue); }
   button {
     border: 1px solid var(--border); border-radius: 9px; background: #172b49; color: var(--text);
     padding: 9px 13px; font: inherit; cursor: pointer;
@@ -113,6 +114,7 @@
         <input id="breakEnd" type="time">
       </div>
       <p class="error" id="error" role="alert" aria-live="polite"></p>
+      <div class="actions"><button id="reset" type="button">Reset inputs</button></div>
     </div>
     <div class="how">
       <h2>How it works</h2>
@@ -121,6 +123,8 @@
         <li>If no break is specified, a 30-minute break is included.</li>
         <li>If a break is specified, the calculator adds extra break time as needed to reach at least 30 minutes total.</li>
         <li>The result can roll over to the next day.</li>
+        <li>Track your worked hours in <a href="https://kimai.optonic.com/de/timesheet/" target="_blank" rel="noopener">Kimai</a>.</li>
+        <!-- TODO: replace the Kimai placeholder URL above with your own instance URL -->
       </ul>
       <div class="note">Break rule: specified break duration + enough extra time to reach a total of at least 30 minutes. A break longer than 30 minutes is counted as-is.</div>
     </div>
@@ -163,7 +167,6 @@
       <div class="example"><strong>30-minute break</strong>Break: 12:00–12:30<br>End: 17:30</div>
       <div class="example"><strong>1-hour break</strong>Break: 12:00–13:00<br>End: 18:00</div>
     </div>
-    <div class="actions"><button id="reset" type="button">Reset inputs</button></div>
   </section>
 </main>
 <script>
