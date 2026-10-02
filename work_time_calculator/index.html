@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work Time Calculator</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0c172b;
+    --panel: #14233c;
+    --panel-2: #102039;
+    --border: #2a4265;
+    --text: #f1f5fb;
+    --muted: #a8bbd8;
+    --accent: #4bd3a3;
+    --accent-bg: #10352f;
+    --blue: #6fa8ff;
+    --danger: #ff9b9b;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 28px 20px 40px;
+    background: radial-gradient(ellipse at top left, #142441 0, var(--bg) 54%);
+    color: var(--text); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  main { width: min(1080px, 100%); margin: 0 auto; }
+  header { margin: 64px 0 24px; }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); margin: 0 0 6px; letter-spacing: -.035em; }
+  .subtitle { color: var(--muted); font-size: 1.05rem; margin: 0; }
+  .panel {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: rgba(20, 35, 60, .9); padding: 22px; margin-top: 18px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.12);
+  }
+  .input-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; }
+  .fields { display: grid; gap: 18px; }
+  label { display: block; font-weight: 650; margin-bottom: 8px; }
+  .optional { color: var(--muted); font-weight: 400; }
+  input[type="time"] {
+    width: 100%; border: 1px solid #486184; border-radius: 10px; padding: 13px 14px;
+    color: var(--text); background: #0e1b30; font: inherit; min-height: 50px;
+  }
+  input[type="time"]:focus-visible, button:focus-visible {
+    outline: 2px solid var(--blue); outline-offset: 3px;
+  }
+  .how { border-left: 1px solid var(--border); padding-left: 26px; }
+  h2 { font-size: 1.2rem; margin: 0 0 12px; }
+  ul { color: var(--muted); margin: 0; padding-left: 20px; line-height: 1.7; }
+  .note { border: 1px solid #31568b; background: #102544; border-radius: 10px; padding: 12px 14px; color: #c6d7f0; margin-top: 18px; line-height: 1.5; }
+  .result { padding: 0; overflow: hidden; border-color: #287b6a; }
+  .result-main { padding: 24px; background: linear-gradient(120deg, #10312f, #12312f 55%, #142b3a); }
+  .result-label { color: #b6c9e1; display: flex; gap: 10px; align-items: center; }
+  .result-time { font-size: clamp(3.5rem, 10vw, 5rem); line-height: 1.12; font-weight: 750; letter-spacing: -.04em; color: var(--accent); margin: 8px 0 6px; font-variant-numeric: tabular-nums; }
+  .result-sentence { color: #bfd2e9; margin: 0; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); padding: 20px 10px; gap: 0; }
+  .stat { text-align: center; padding: 0 10px; border-right: 1px solid var(--border); }
+  .stat:last-child { border-right: 0; }
+  .stat-label { color: var(--muted); font-size: .92rem; margin-bottom: 6px; }
+  .stat-value { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-detail { color: var(--muted); font-size: .85rem; margin-top: 2px; }
+  .error { color: var(--danger); margin: 12px 0 0; min-height: 1.4em; }
+  .examples { color: var(--muted); }
+  .example-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .example { padding-right: 16px; border-right: 1px solid var(--border); line-height: 1.8; }
+  .example:last-child { border-right: 0; }
+  .example strong { color: #d9e6f7; display: block; margin-bottom: 4px; }
+  .actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+  button {
+    border: 1px solid var(--border); border-radius: 9px; background: #172b49; color: var(--text);
+    padding: 9px 13px; font: inherit; cursor: pointer;
+  }
+  button:hover { background: #203a60; }
+  .back-link {
+    position: fixed; top: 20px; left: 20px; z-index: 10;
+    border: 1px solid var(--border); border-radius: 9px; background: #172b49;
+    color: var(--text); padding: 9px 13px; text-decoration: none; font: inherit;
+  }
+  .back-link:hover { background: #203a60; }
+  @media (max-width: 720px) {
+    body { padding: 20px 14px 30px; }
+    .input-grid { grid-template-columns: 1fr; }
+    .how { border-left: 0; border-top: 1px solid var(--border); padding: 20px 0 0; }
+    .stats { grid-template-columns: repeat(2, 1fr); row-gap: 20px; }
+    .stat:nth-child(2) { border-right: 0; }
+    .example-grid { grid-template-columns: 1fr; }
+    .example { border-right: 0; border-bottom: 1px solid var(--border); padding: 0 0 14px; }
+    .example:last-child { border-bottom: 0; padding-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+<a class="back-link" href="/">← Toolbox</a>
+<main>
+  <header>
+    <h1>◷ Work Time Calculator</h1>
+    <p class="subtitle">Calculate when your workday ends, including the minimum break time.</p>
+  </header>
+
+  <section class="panel input-grid" aria-label="Work time inputs">
+    <div class="fields">
+      <div>
+        <label for="start">Start time</label>
+        <input id="start" type="time" required>
+      </div>
+      <div>
+        <label for="breakStart">Start of break <span class="optional">(optional)</span></label>
+        <input id="breakStart" type="time">
+      </div>
+      <div>
+        <label for="breakEnd">End of break <span class="optional">(optional)</span></label>
+        <input id="breakEnd" type="time">
+      </div>
+      <p class="error" id="error" role="alert" aria-live="polite"></p>
+    </div>
+    <div class="how">
+      <h2>How it works</h2>
+      <ul>
+        <li>You need <strong>8 hours of actual work</strong>.</li>
+        <li>If no break is specified, a 30-minute break is included.</li>
+        <li>If a break is specified, the calculator adds extra break time as needed to reach at least 30 minutes total.</li>
+        <li>The result can roll over to the next day.</li>
+      </ul>
+      <div class="note">Break rule: specified break duration + enough extra time to reach a total of at least 30 minutes. A break longer than 30 minutes is counted as-is.</div>
+    </div>
+  </section>
+
+  <section class="panel result" aria-live="polite">
+    <div class="result-main">
+      <div class="result-label"><span aria-hidden="true">▣</span> Work end time</div>
+      <div class="result-time" id="endTime">—</div>
+      <p class="result-sentence" id="sentence">Enter your start time to see when your workday ends.</p>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Work time</div>
+        <div class="stat-value">8h 0m</div>
+        <div class="stat-detail">required</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Break time</div>
+        <div class="stat-value" id="breakDuration">30m</div>
+        <div class="stat-detail" id="breakDetail">minimum included</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total elapsed</div>
+        <div class="stat-value" id="elapsed">8h 30m</div>
+        <div class="stat-detail">start → finish</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Finish day</div>
+        <div class="stat-value" id="finishDay">Today</div>
+        <div class="stat-detail">relative to start</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel examples">
+    <h2>Quick examples · start at 09:00</h2>
+    <div class="example-grid">
+      <div class="example"><strong>No break specified</strong>Break counted: 30 min<br>End: 17:30</div>
+      <div class="example"><strong>30-minute break</strong>Break: 12:00–12:30<br>End: 17:30</div>
+      <div class="example"><strong>1-hour break</strong>Break: 12:00–13:00<br>End: 18:00</div>
+    </div>
+    <div class="actions"><button id="reset" type="button">Reset inputs</button></div>
+  </section>
+</main>
+<script>
+(() => {
+  const startEl = document.getElementById('start');
+  const breakStartEl = document.getElementById('breakStart');
+  const breakEndEl = document.getElementById('breakEnd');
+  const errorEl = document.getElementById('error');
+  const endTimeEl = document.getElementById('endTime');
+  const sentenceEl = document.getElementById('sentence');
+  const breakDurationEl = document.getElementById('breakDuration');
+  const breakDetailEl = document.getElementById('breakDetail');
+  const elapsedEl = document.getElementById('elapsed');
+  const finishDayEl = document.getElementById('finishDay');
+
+  const REQUIRED_WORK_MINUTES = 8 * 60;
+  const MIN_BREAK_MINUTES = 30;
+
+  function toMinutes(value) {
+    if (!value) return null;
+    const [hours, minutes] = value.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  function formatTime(totalMinutes) {
+    const normalized = ((totalMinutes % 1440) + 1440) % 1440;
+    const hours = Math.floor(normalized / 60);
+    const minutes = normalized % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }
+
+  function formatDuration(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours && mins) return `${hours}h ${mins}m`;
+    if (hours) return `${hours}h`;
+    return `${mins}m`;
+  }
+
+  function calculate() {
+    errorEl.textContent = '';
+    const start = toMinutes(startEl.value);
+    const breakStartValue = toMinutes(breakStartEl.value);
+    const breakEndValue = toMinutes(breakEndEl.value);
+    const hasBreakStart = breakStartValue !== null;
+    const hasBreakEnd = breakEndValue !== null;
+
+    if (start === null) {
+      showError('Please enter a start time.', 'Enter your start time to see when your workday ends.');
+      return;
+    }
+    if (hasBreakStart !== hasBreakEnd) {
+      showError('Enter both the start and end of the break, or leave both blank.');
+      return;
+    }
+
+    let specifiedBreak = 0;
+    let breakLabel = '30m minimum included';
+    let breakDuration = MIN_BREAK_MINUTES;
+
+    if (hasBreakStart && hasBreakEnd) {
+      // Treat a break end earlier than its start as crossing midnight.
+      specifiedBreak = breakEndValue - breakStartValue;
+      if (specifiedBreak < 0) specifiedBreak += 1440;
+      if (specifiedBreak === 0) {
+        showError('Break start and end cannot be the same time.');
+        return;
+      }
+
+      // Break must occur after the workday starts; allow a break crossing midnight.
+      let relativeBreakStart = breakStartValue - start;
+      if (relativeBreakStart < 0) relativeBreakStart += 1440;
+      if (relativeBreakStart >= 1440 || relativeBreakStart + specifiedBreak > 1440) {
+        showError('The specified break must fit within 24 hours after the work start.');
+        return;
+      }
+
+      breakDuration = Math.max(MIN_BREAK_MINUTES, specifiedBreak);
+      const extra = breakDuration - specifiedBreak;
+      breakLabel = extra > 0
+        ? `${formatDuration(specifiedBreak)} + ${formatDuration(extra)} extra`
+        : 'specified break';
+    }
+
+    const totalElapsed = REQUIRED_WORK_MINUTES + breakDuration;
+    const finishAbsolute = start + totalElapsed;
+    const finish = formatTime(finishAbsolute);
+    const dayOffset = Math.floor(finishAbsolute / 1440);
+
+    endTimeEl.textContent = finish;
+    sentenceEl.textContent = dayOffset === 0
+      ? `You'll finish your work at ${finish}.`
+      : `You'll finish your work at ${finish} the ${dayOffset === 1 ? 'next day' : `in ${dayOffset} days`}.`;
+    breakDurationEl.textContent = formatDuration(breakDuration);
+    breakDetailEl.textContent = breakLabel;
+    elapsedEl.textContent = formatDuration(totalElapsed);
+    finishDayEl.textContent = dayOffset === 0 ? 'Today' : dayOffset === 1 ? 'Tomorrow' : `+${dayOffset} days`;
+  }
+
+  function showError(message, sentence) {
+    errorEl.textContent = message;
+    endTimeEl.textContent = '—';
+    sentenceEl.textContent = sentence || 'Check the time inputs above.';
+    breakDurationEl.textContent = '—';
+    breakDetailEl.textContent = 'needs valid input';
+    elapsedEl.textContent = '—';
+    finishDayEl.textContent = '—';
+  }
+
+  [startEl, breakStartEl, breakEndEl].forEach(el => el.addEventListener('input', calculate));
+
+  document.getElementById('reset').addEventListener('click', () => {
+    startEl.value = '';
+    breakStartEl.value = '';
+    breakEndEl.value = '';
+    calculate();
+  });
+
+  calculate();
+})();
+</script>
+</body>
+</html>

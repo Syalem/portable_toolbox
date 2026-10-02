@@ -23,11 +23,16 @@ class ToolboxHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         # Redirect root to index.html
-        if self.path == '/' or self.path == '/index.html':
+        if self.path in ('/', '/index.html'):
             self.path = '/index.html'
-        # Redirect tool root to tool's index.html
-        elif self.path.endswith('/') or self.path == '/timer':
+        # Redirect tool roots to the tool's index.html, e.g.
+        # /timer, /pdf-tools/ or /work_time_calculator -> /<tool>/index.html
+        elif self.path.endswith('/'):
             self.path = self.path.rstrip('/') + '/index.html'
+        elif '.' not in self.path.rsplit('/', 1)[-1]:
+            # No file extension in the last segment: treat it as a tool folder
+            if (TOOLBOX_ROOT / self.path.strip('/')).is_dir():
+                self.path = self.path + '/index.html'
         super().do_GET()
 
     def do_POST(self):
@@ -111,10 +116,9 @@ def run_server(port, explicit_port=False):
         print(f"{'='*60}")
         print(f"\n  Server: http://localhost:{port}")
         print(f"\n  Tools:")
-        for item in TOOLBOX_ROOT.iterdir():
-            if item.is_dir() and not item.name.startswith(('_', '.')) and item.name != 'timer':
+        for item in sorted(TOOLBOX_ROOT.iterdir()):
+            if item.is_dir() and not item.name.startswith(('_', '.')):
                 print(f"    - {item.name}")
-        print(f"    - timer")
         print(f"\n  Press Ctrl+C to stop")
         print(f"\n{'='*60}\n")
         try:
