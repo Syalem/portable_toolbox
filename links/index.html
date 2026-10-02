@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Links</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 20px; }
+        .back-link {
+            display: inline-block;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 8px 12px;
+            color: #333;
+            text-decoration: none;
+            font-size: 1rem;
+        }
+        .back-link:hover { background-color: #f0f0f0; border-color: #999; }
+        .form-card {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .form-grid .full { grid-column: 1 / -1; }
+        label {
+            display: block;
+            margin-bottom: 4px;
+            color: #333;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        input:focus { outline: none; border-color: #2196F3; }
+        .type-hint { margin-top: 4px; font-size: 0.85rem; color: #2196F3; min-height: 1.1em; }
+        .form-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #btn_submit { background-color: #2196F3; color: white; }
+        #btn_submit:hover { background-color: #1976D2; }
+        #btn_cancel { background-color: #9e9e9e; color: white; }
+        #btn_cancel:hover { background-color: #757575; }
+        #status { font-size: 0.9rem; color: #4CAF50; }
+        #status.error { color: #f44336; }
+        .hidden { display: none; }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        #recherche { flex: 1; }
+        .count { color: #888; font-size: 0.9rem; white-space: nowrap; }
+        .link-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background-color: #fafafa;
+        }
+        .link-main { flex: 1; min-width: 0; }
+        .link-title { font-weight: bold; color: #333; margin-bottom: 3px; }
+        .badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: normal;
+            padding: 1px 8px;
+            border-radius: 10px;
+            vertical-align: middle;
+        }
+        .badge-online { background-color: #e3f2fd; color: #1565c0; }
+        .badge-local { background-color: #ede7f6; color: #4527a0; }
+        .badge-cat { background-color: #e8f5e9; color: #2e7d32; }
+        .link-target {
+            display: block;
+            color: #2196F3;
+            word-break: break-all;
+            font-size: 0.9rem;
+            text-decoration: none;
+        }
+        .link-target:hover { text-decoration: underline; }
+        .link-note { color: #666; font-size: 0.85rem; margin-top: 3px; }
+        .link-added { color: #aaa; font-size: 0.78rem; margin-top: 2px; }
+        .link-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .btn {
+            display: inline-block;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: normal;
+            text-decoration: none;
+            color: white;
+            background-color: #9e9e9e;
+        }
+        .btn:hover { filter: brightness(0.9); }
+        .btn-open { background-color: #4CAF50; }
+        .btn-delete { background-color: #f44336; }
+        .empty { text-align: center; color: #888; padding: 30px 0; }
+        .footer-note { text-align: center; color: #aaa; font-size: 0.85rem; margin-top: 20px; }
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .link-item { flex-direction: column; align-items: stretch; }
+            .link-actions { justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Toolbox</a>
+        <h1>🔗 Links</h1>
+        <p class="subtitle">Save online links and local paths with a title</p>
+
+        <form id="form" class="form-card">
+            <div class="form-grid">
+                <div class="full">
+                    <label for="titre">Title *</label>
+                    <input type="text" id="titre" placeholder="e.g. Python documentation">
+                </div>
+                <div class="full">
+                    <label for="cible">Link or local path *</label>
+                    <input type="text" id="cible" placeholder="https://example.com or C:\Users\me\report.pdf">
+                    <div id="type_hint" class="type-hint"></div>
+                </div>
+                <div>
+                    <label for="categorie">Category (optional)</label>
+                    <input type="text" id="categorie" placeholder="e.g. work, dev, personal">
+                </div>
+                <div>
+                    <label for="note">Note (optional)</label>
+                    <input type="text" id="note" placeholder="Short description">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="btn_submit">➕ Add link</button>
+                <button type="button" id="btn_cancel" class="hidden" onclick="cancelEdit()">Cancel</button>
+                <span id="status"></span>
+            </div>
+        </form>
+
+        <div class="toolbar">
+            <input type="text" id="recherche" placeholder="🔍 Search by title, link, category or note...">
+            <span id="compteur" class="count"></span>
+        </div>
+
+        <div id="liste"></div>
+
+        <p class="footer-note">Data is stored in <code>links/links.json</code> and saved automatically after each change.</p>
+    </div>
+
+    <script>
+        // État global
+        let links = [];
+        let editingId = null;
+
+        const form = document.getElementById('form');
+        const inputTitre = document.getElementById('titre');
+        const inputCible = document.getElementById('cible');
+        const inputCategorie = document.getElementById('categorie');
+        const inputNote = document.getElementById('note');
+        const typeHint = document.getElementById('type_hint');
+        const btnSubmit = document.getElementById('btn_submit');
+        const btnCancel = document.getElementById('btn_cancel');
+        const statusEl = document.getElementById('status');
+        const searchEl = document.getElementById('recherche');
+        const compteurEl = document.getElementById('compteur');
+        const listeEl = document.getElementById('liste');
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Type auto-detection: online URL vs local path
+        function isOnline(target) {
+            return /^(https?:\/\/|www\.)/i.test(target.trim());
+        }
+
+        function httpUrl(target) {
+            const t = target.trim();
+            return /^https?:\/\//i.test(t) ? t : 'https://' + t;
+        }
+
+        function fileUrl(target) {
+            const p = target.trim().replace(/\\/g, '/');
+            if (p.startsWith('//')) return 'file:' + p; // UNC path (\\server\share)
+            return 'file:///' + p.replace(/^\//, '');
+        }
+
+        // Live type detection hint under the link/path input
+        function majTypeHint() {
+            const target = inputCible.value.trim();
+            if (!target) { typeHint.textContent = ''; return; }
+            typeHint.textContent = isOnline(target) ? '🌐 Detected: online link' : '📁 Detected: local path';
+        }
+        inputCible.addEventListener('input', majTypeHint);
+
+        // Status message next to the form buttons
+        let statusTimer = null;
+        function setStatus(message, isError) {
+            statusEl.textContent = message;
+            statusEl.classList.toggle('error', Boolean(isError));
+            clearTimeout(statusTimer);
+            if (!isError && message) {
+                statusTimer = setTimeout(function () { statusEl.textContent = ''; }, 2500);
+            }
+        }
+
+        // Sauvegarder les données (POST /links/sauvegarder géré par toolbox.py)
+        function save() {
+            setStatus('Saving…');
+            fetch('/links/sauvegarder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ links: links })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data && data.status === 'success') setStatus('Saved ✓');
+                else setStatus('Save error: ' + (data && data.detail ? data.detail : 'unknown'), true);
+            })
+            .catch(function () { setStatus('Save error: server unreachable.', true); });
+        }
+
+        function newItem() {
+            return {
+                id: 'l' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36),
+                title: inputTitre.value.trim(),
+                target: inputCible.value.trim(),
+                category: inputCategorie.value.trim(),
+                note: inputNote.value.trim(),
+                added: new Date().toISOString().slice(0, 10)
+            };
+        }
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const title = inputTitre.value.trim();
+            const target = inputCible.value.trim();
+            if (!title || !target) {
+                setStatus('Title and link/path are required.', true);
+                return;
+            }
+            if (editingId) {
+                const item = links.find(function (l) { return l.id === editingId; });
+                if (item) {
+                    item.title = title;
+                    item.target = target;
+                    item.category = inputCategorie.value.trim();
+                    item.note = inputNote.value.trim();
+                }
+                resetForm();
+            } else {
+                links.push(newItem());
+                inputTitre.value = '';
+                inputCible.value = '';
+                inputCategorie.value = '';
+                inputNote.value = '';
+                majTypeHint();
+            }
+            render();
+            save();
+            inputTitre.focus();
+        });
+
+        function startEdit(id) {
+            const item = links.find(function (l) { return l.id === id; });
+            if (!item) return;
+            editingId = id;
+            inputTitre.value = item.title;
+            inputCible.value = item.target;
+            inputCategorie.value = item.category || '';
+            inputNote.value = item.note || '';
+            btnSubmit.textContent = '💾 Save changes';
+            btnCancel.classList.remove('hidden');
+            majTypeHint();
+            inputTitre.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            editingId = null;
+            form.reset();
+            btnSubmit.textContent = '➕ Add link';
+            btnCancel.classList.add('hidden');
+            majTypeHint();
+        }
+
+        function cancelEdit() { resetForm(); }
+
+        function deleteLink(id) {
+            const item = links.find(function (l) { return l.id === id; });
+            if (!item) return;
+            if (!confirm('Delete "' + item.title + '" ?')) return;
+            links = links.filter(function (l) { return l.id !== id; });
+            if (editingId === id) resetForm();
+            render();
+            save();
+        }
+
+        function copyText(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        // Fallback for non-secure contexts (e.g. http://LAN-IP access)
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (err) { /* ignore */ }
+            document.body.removeChild(ta);
+        }
+
+        function copyLink(id) {
+            const item = links.find(function (l) { return l.id === id; });
+            if (!item) return;
+            copyText(item.target);
+            setStatus('Copied to clipboard ✓');
+        }
+
+        function matches(item, term) {
+            if (!term) return true;
+            const hay = [item.title, item.target, item.category, item.note]
+                .map(function (v) { return String(v || '').toLowerCase(); });
+            return hay.some(function (v) { return v.includes(term); });
+        }
+
+        function renderItem(item) {
+            const online = isOnline(item.target);
+            const href = online ? httpUrl(item.target) : fileUrl(item.target);
+            const icon = online ? '🌐' : '📁';
+            const typeLabel = online ? 'online' : 'local path';
+
+            let html = '<div class="link-item"><div class="link-main">';
+            html += '<div class="link-title">' + icon + ' ' + escapeHtml(item.title);
+            html += ' <span class="badge ' + (online ? 'badge-online' : 'badge-local') + '">' + typeLabel + '</span>';
+            if (item.category) html += ' <span class="badge badge-cat">' + escapeHtml(item.category) + '</span>';
+            html += '</div>';
+            html += '<a class="link-target" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" title="' + escapeHtml(item.target) + '">' + escapeHtml(item.target) + '</a>';
+            if (item.note) html += '<div class="link-note">' + escapeHtml(item.note) + '</div>';
+            if (item.added) html += '<div class="link-added">Added: ' + escapeHtml(item.added) + '</div>';
+            html += '</div><div class="link-actions">';
+            html += '<a class="btn btn-open" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" title="' + (online ? 'Open in a new tab' : 'Try to open (may be blocked by the browser)') + '">↗ Open</a>';
+            html += '<button type="button" class="btn" data-action="copy" data-id="' + escapeHtml(item.id) + '">⧉ Copy</button>';
+            html += '<button type="button" class="btn" data-action="edit" data-id="' + escapeHtml(item.id) + '">✏️ Edit</button>';
+            html += '<button type="button" class="btn btn-delete" data-action="delete" data-id="' + escapeHtml(item.id) + '">🗑 Delete</button>';
+            html += '</div></div>';
+            return html;
+        }
+
+        function render() {
+            const term = searchEl.value.trim().toLowerCase();
+            const visibles = links.filter(function (l) { return matches(l, term); });
+            if (links.length === 0) {
+                listeEl.innerHTML = '<p class="empty">No links yet. Add your first one with the form above.</p>';
+            } else if (visibles.length === 0) {
+                listeEl.innerHTML = '<p class="empty">No result for "' + escapeHtml(term) + '".</p>';
+            } else {
+                listeEl.innerHTML = visibles.map(renderItem).join('');
+            }
+            compteurEl.textContent = links.length === 0 ? '' :
+                (term ? visibles.length + ' / ' + links.length + ' link(s)' : links.length + ' link(s)');
+        }
+
+        searchEl.addEventListener('input', render);
+
+        listeEl.addEventListener('click', function (e) {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.getAttribute('data-action');
+            const id = btn.getAttribute('data-id');
+            if (action === 'edit') startEdit(id);
+            else if (action === 'delete') deleteLink(id);
+            else if (action === 'copy') copyLink(id);
+        });
+
+        // Chargement initial : données sauvegardées puis affichage
+        (async function initialiser() {
+            try {
+                const resp = await fetch('links.json');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && Array.isArray(data.links)) links = data.links;
+                }
+            } catch (error) {
+                // Fichier indisponible : démarrage avec une liste vide
+            }
+            render();
+        })();
+    </script>
+</body>
+</html>

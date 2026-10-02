@@ -36,15 +36,34 @@ class ToolboxHandler(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
-        """Save endpoint for the vacances tool (same contract as the old FastAPI app)."""
-        if self.path.rstrip('/') not in ('/sauvegarder', '/vacances/sauvegarder'):
+        """Dispatch POST save endpoints to the tool that owns them."""
+        route = self.path.rstrip('/')
+        if route in ('/sauvegarder', '/vacances/sauvegarder'):
+            self._handle_vacances_save()
+        elif route == '/links/sauvegarder':
+            self._handle_links_save()
+        else:
             self.send_error(404, "Unknown POST endpoint")
-            return
+
+    def _send_json(self, status, payload):
+        message = json.dumps(payload).encode('utf-8')
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(message)))
+        self.end_headers()
+        self.wfile.write(message)
+
+    def _read_json_body(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        data = json.loads(self.rfile.read(content_length).decode('utf-8'))
+        if not isinstance(data, dict):
+            raise ValueError("Un objet JSON est attendu")
+        return data
+
+    def _handle_vacances_save(self):
+        """Save endpoint for the vacances tool (same contract as the old FastAPI app)."""
         try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            data = json.loads(self.rfile.read(content_length).decode('utf-8'))
-            if not isinstance(data, dict):
-                raise ValueError("Un objet JSON est attendu")
+            data = self._read_json_body()
             annee = str(data.get('annee', datetime.now().year))
             donnees_annee = {k: v for k, v in data.items() if k != 'annee'}
 
@@ -62,20 +81,25 @@ class ToolboxHandler(http.server.SimpleHTTPRequestHandler):
             with open(fichier, 'w', encoding='utf-8') as f:
                 json.dump(toutes_vacances, f, indent=4, ensure_ascii=False)
         except (ValueError, TypeError, OSError) as err:
-            message = json.dumps({'status': 'error', 'detail': str(err)}).encode('utf-8')
-            self.send_response(400)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Content-Length', str(len(message)))
-            self.end_headers()
-            self.wfile.write(message)
+            self._send_json(400, {'status': 'error', 'detail': str(err)})
             return
 
-        reponse = b'{"status": "success"}'
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(reponse)))
-        self.end_headers()
-        self.wfile.write(reponse)
+        self._send_json(200, {'status': 'success'})
+
+    def _handle_links_save(self):
+        """Save endpoint for the links tool: stores the whole list in links/links.json."""
+        try:
+            data = self._read_json_body()
+            if not isinstance(data.get('links'), list):
+                raise ValueError("Un objet JSON contenant une liste 'links' est attendu")
+            fichier = TOOLBOX_ROOT / 'links' / 'links.json'
+            with open(fichier, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except (ValueError, TypeError, OSError) as err:
+            self._send_json(400, {'status': 'error', 'detail': str(err)})
+            return
+
+        self._send_json(200, {'status': 'success'})
 
 class ToolboxServer(socketserver.TCPServer):
     """TCPServer that fails fast when the port is already taken.
