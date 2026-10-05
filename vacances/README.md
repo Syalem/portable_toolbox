@@ -27,7 +27,7 @@ Clique sur la carte 📅 **Vacances** (ou va directement sur http://localhost:80
 
 vacances/
 │── index.html           # Page de l'outil (HTML + CSS + JS)
-│── jours_feries.json    # Jours fériés du Baden-Württemberg (2026-2027)
+│── jours_feries.json    # Jours fériés du Baden-Württemberg (2026-2028)
 │── vacances.json        # Données des vacances (créé automatiquement)
 
 
@@ -78,7 +78,7 @@ vacances/
 
 ## 📝 Fichiers JSON
 jours_feries.json
-Contient les jours fériés pour le Baden-Württemberg (2026 et 2027).
+Contient les jours fériés pour le Baden-Württemberg (2026, 2027 et 2028) : les 12 jours fériés officiels du Land.
 Exemple :
 ```json
 {
