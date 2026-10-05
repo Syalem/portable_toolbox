@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Replacer - Toolbox</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            padding: 70px 20px 30px;
+        }
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 1rem;
+            z-index: 100;
+        }
+        .back-link:hover { background: rgba(0, 212, 255, 0.2); border-color: #00d4ff; }
+        .container {
+            width: 100%;
+            max-width: 820px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+        }
+        h1 { color: #00d4ff; font-weight: 300; font-size: 2rem; text-align: center; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 25px; font-size: 0.95rem; }
+        label { display: block; color: #888; font-size: 0.85rem; margin-bottom: 6px; }
+        textarea {
+            width: 100%;
+            min-height: 110px;
+            padding: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #444;
+            border-radius: 8px;
+            color: #fff;
+            resize: vertical;
+        }
+        textarea:focus { outline: none; border-color: #00d4ff; background: rgba(255, 255, 255, 0.1); }
+        #output-text { min-height: 110px; background: rgba(0, 212, 255, 0.04); }
+        .options { display: flex; gap: 20px; flex-wrap: wrap; margin: 12px 0 5px; }
+        .options label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+        .options input[type="checkbox"] { accent-color: #00d4ff; width: 16px; height: 16px; cursor: pointer; }
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 6px;
+        }
+        .output-header label { margin-bottom: 0; }
+        #stats { color: #888; font-weight: normal; }
+        #stats.has-matches { color: #00d4ff; }
+        h2 { font-size: 1.1rem; color: #00d4ff; font-weight: 400; margin: 25px 0 12px; }
+        .pair-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .pair-row input {
+            flex: 1;
+            padding: 9px 12px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #444;
+            border-radius: 8px;
+            color: #fff;
+            min-width: 0;
+        }
+        .pair-row input:focus { outline: none; border-color: #00d4ff; }
+        .pair-arrow { color: #00d4ff; font-weight: bold; }
+        .pair-row.inactive { opacity: 0.45; }
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #00d4ff, #0099cc); color: #000; }
+        .btn-primary:hover { filter: brightness(1.15); }
+        .btn-secondary { background: linear-gradient(135deg, #666, #444); color: #fff; }
+        .btn-secondary:hover { filter: brightness(1.2); }
+        .btn-delete { background: transparent; border: 1px solid rgba(255, 107, 107, 0.5); color: #ff6b6b; }
+        .btn-delete:hover { background: rgba(255, 107, 107, 0.15); }
+        .pairs-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
+        #status { min-height: 1.2em; font-size: 0.9rem; color: #4CAF50; margin-top: 12px; }
+        #status.error { color: #ff6b6b; }
+        .empty { color: #888; font-size: 0.9rem; padding: 4px 0; }
+        @media (max-width: 560px) {
+            .pair-row { flex-wrap: wrap; }
+            .pair-arrow { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <a class="back-link" href="/">← Toolbox</a>
+    <div class="container">
+        <h1>🔁 Word Replacer</h1>
+        <p class="subtitle">Write a string, get it back with the given words replaced</p>
+
+        <label for="input-text">Your text</label>
+        <textarea id="input-text" placeholder="Type or paste your text here..." autofocus></textarea>
+
+        <div class="options">
+            <label><input type="checkbox" id="opt-ignore-case" checked> Ignore case</label>
+            <label><input type="checkbox" id="opt-whole-words"> Whole words only</label>
+        </div>
+
+        <div class="output-header">
+            <label for="output-text">Result <span id="stats"></span></label>
+            <button type="button" id="btn-copy" class="btn btn-primary">⧉ Copy</button>
+        </div>
+        <textarea id="output-text" readonly placeholder="The rewritten text appears here..."></textarea>
+
+        <h2>Word replacements</h2>
+        <div id="pairs"></div>
+        <div class="pairs-actions">
+            <button type="button" id="btn-add" class="btn btn-primary">＋ Add pair</button>
+            <button type="button" id="btn-reset" class="btn btn-secondary">↺ Reset to defaults</button>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const DEFAULT_PAIRS = [
+            { find: 'maelys', replace: 'user' },
+            { find: 'flohimont', replace: 'name' },
+            { find: 'optonic', replace: 'company' }
+        ];
+        const STORAGE_KEY = 'word_replacer_pairs';
+
+        const inputEl = document.getElementById('input-text');
+        const outputEl = document.getElementById('output-text');
+        const statsEl = document.getElementById('stats');
+        const pairsEl = document.getElementById('pairs');
+        const statusEl = document.getElementById('status');
+        const optIgnoreCase = document.getElementById('opt-ignore-case');
+        const optWholeWords = document.getElementById('opt-whole-words');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnAdd = document.getElementById('btn-add');
+        const btnReset = document.getElementById('btn-reset');
+
+        let pairs = loadPairs();
+        let statusTimer = null;
+
+        function loadPairs() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    if (Array.isArray(data) && data.every(function (p) {
+                        return p && typeof p.find === 'string' && typeof p.replace === 'string';
+                    })) {
+                        return data;
+                    }
+                }
+            } catch (error) {
+                // Storage unavailable or corrupted: start from the default pairs
+            }
+            return DEFAULT_PAIRS.map(function (p) { return { find: p.find, replace: p.replace }; });
+        }
+
+        function savePairs() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(pairs));
+            } catch (error) {
+                // Storage unavailable: pairs stay valid for the current session only
+            }
+        }
+
+        function escapeRegex(text) {
+            return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function applyReplacements(text) {
+            // Longest words first so a word contained in another one is handled correctly
+            const active = pairs
+                .filter(function (p) { return p.find.trim() !== ''; })
+                .sort(function (a, b) { return b.find.trim().length - a.find.trim().length; });
+            let count = 0;
+            active.forEach(function (p) {
+                const word = escapeRegex(p.find.trim());
+                const pattern = optWholeWords.checked ? '\\b(?:' + word + ')\\b' : word;
+                const flags = optIgnoreCase.checked ? 'gi' : 'g';
+                text = text.replace(new RegExp(pattern, flags), function () {
+                    count++;
+                    return p.replace;
+                });
+            });
+            return { text: text, count: count };
+        }
+
+        function runReplace() {
+            const source = inputEl.value;
+            if (source === '') {
+                outputEl.value = '';
+                statsEl.textContent = '';
+                return;
+            }
+            const result = applyReplacements(source);
+            outputEl.value = result.text;
+            statsEl.textContent = result.count > 0
+                ? result.count + ' replacement' + (result.count > 1 ? 's' : '')
+                : 'no match';
+            statsEl.classList.toggle('has-matches', result.count > 0);
+        }
+
+        function renderPairs() {
+            pairsEl.innerHTML = '';
+            if (pairs.length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'empty';
+                empty.textContent = 'No word pair. Add one below or reset to the defaults.';
+                pairsEl.appendChild(empty);
+                return;
+            }
+            pairs.forEach(function (pair) {
+                const row = document.createElement('div');
+                row.className = 'pair-row';
+
+                const findInput = document.createElement('input');
+                findInput.type = 'text';
+                findInput.className = 'pair-find';
+                findInput.value = pair.find;
+                findInput.placeholder = 'Word to replace';
+                findInput.setAttribute('aria-label', 'Word to replace');
+
+                const arrow = document.createElement('span');
+                arrow.className = 'pair-arrow';
+                arrow.textContent = '→';
+
+                const replaceInput = document.createElement('input');
+                replaceInput.type = 'text';
+                replaceInput.className = 'pair-replace';
+                replaceInput.value = pair.replace;
+                replaceInput.placeholder = 'Replacement';
+                replaceInput.setAttribute('aria-label', 'Replacement');
+
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'btn btn-delete';
+                delBtn.textContent = '✕';
+                delBtn.title = 'Delete this pair';
+
+                findInput.addEventListener('input', function () {
+                    pair.find = findInput.value;
+                    row.classList.toggle('inactive', pair.find.trim() === '');
+                    pairsChanged();
+                });
+                replaceInput.addEventListener('input', function () {
+                    pair.replace = replaceInput.value;
+                    pairsChanged();
+                });
+                delBtn.addEventListener('click', function () {
+                    pairs.splice(pairs.indexOf(pair), 1);
+                    savePairs();
+                    renderPairs();
+                    runReplace();
+                });
+
+                row.appendChild(findInput);
+                row.appendChild(arrow);
+                row.appendChild(replaceInput);
+                row.appendChild(delBtn);
+                row.classList.toggle('inactive', pair.find.trim() === '');
+                pairsEl.appendChild(row);
+            });
+        }
+
+        function setStatus(message, isError) {
+            statusEl.textContent = message;
+            statusEl.classList.toggle('error', Boolean(isError));
+            clearTimeout(statusTimer);
+            statusTimer = setTimeout(function () { statusEl.textContent = ''; }, 3000);
+        }
+
+        function pairsChanged() {
+            savePairs();
+            runReplace();
+        }
+
+        function copyResult() {
+            if (outputEl.value === '') {
+                setStatus('Nothing to copy yet.', true);
+                return;
+            }
+            const fallback = function () {
+                outputEl.focus();
+                outputEl.select();
+                let copied = false;
+                try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+                if (copied) setStatus('Result copied ✓');
+                else setStatus('Copy failed — please select and copy manually.', true);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(outputEl.value).then(function () {
+                    setStatus('Result copied ✓');
+                }, fallback);
+            } else {
+                fallback();
+            }
+        }
+
+        btnCopy.addEventListener('click', copyResult);
+        btnAdd.addEventListener('click', function () {
+            pairs.push({ find: '', replace: '' });
+            savePairs();
+            renderPairs();
+            const findInputs = pairsEl.querySelectorAll('.pair-find');
+            if (findInputs.length > 0) findInputs[findInputs.length - 1].focus();
+            runReplace();
+        });
+        btnReset.addEventListener('click', function () {
+            pairs = DEFAULT_PAIRS.map(function (p) { return { find: p.find, replace: p.replace }; });
+            savePairs();
+            renderPairs();
+            runReplace();
+            setStatus('Default pairs restored ✓');
+        });
+
+        inputEl.addEventListener('input', runReplace);
+        optIgnoreCase.addEventListener('change', runReplace);
+        optWholeWords.addEventListener('change', runReplace);
+
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                copyResult();
+            }
+        });
+
+        // Initial render: saved pairs (or defaults) and empty result
+        renderPairs();
+        runReplace();
+    </script>
+</body>
+</html>
